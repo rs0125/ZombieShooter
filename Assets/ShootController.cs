@@ -16,6 +16,8 @@ public class PlayerShooting : MonoBehaviour
     public float shootForce = 30f;
     public float shootRange = 100f;
     public LayerMask shootableLayers;
+    
+    public GunAiming gunAiming;
 
     [Tooltip("Delay in seconds between shots")]
     public float fireRate = 0.2f;
@@ -61,6 +63,9 @@ public class PlayerShooting : MonoBehaviour
 
         // 🔥 Play muzzle flash
         muzzleFlash.Play();
+        if (gunAiming != null)
+            gunAiming.ApplyRecoil();
+    
     }
 
 

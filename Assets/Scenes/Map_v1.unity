@@ -30365,6 +30365,7 @@ MonoBehaviour:
   shootableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  gunAiming: {fileID: 9001199566372298196}
   fireRate: 0.5
 --- !u!1 &1991716592
 GameObject:
@@ -33045,6 +33046,13 @@ MonoBehaviour:
   aimTransform: {fileID: 660477245}
   crosshair: {fileID: 836559244}
   aimLerpSpeed: 20
+  swayAmount: 1
+  swaySmooth: 10
+  maxSwayAngle: 5
+  bobFrequency: 6
+  bobAmplitude: 0.01
+  recoilKickback: 0.1
+  recoilRecoverySpeed: 10
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
