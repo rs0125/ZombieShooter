@@ -1,30 +1,38 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovement : MonoBehaviour
+[RequireComponent(typeof(CharacterController), typeof(PlayerInput))]
+public class PlayerController : MonoBehaviour
 {
-    private PlayerInput playerInput;
-    private InputAction moveAction;
-    private InputAction sprintAction;
-
+    [Header("Movement Settings")]
     public float moveSpeed = 5f;
     public float sprintSpeed = 10f;
-    public float mouseSensitivity = 2f;
     public float gravity = -9.81f;
-    public float jumpHeight = 1.5f;
+
+    [Header("Look Settings")]
+    public float mouseSensitivity = 2f;
+    public Transform cameraTransform;
+
+    [Header("Gun")]
+    public Gun equippedGun;
 
     private CharacterController controller;
-    private float verticalRotation = 0f;
-    private Vector3 verticalVelocity;
+    private PlayerInput input;
 
-    public Transform cameraTransform; // Assign this in Inspector (the Camera)
+    private InputAction moveAction, sprintAction, lookAction, aimAction, fireAction;
+    private Vector3 verticalVelocity;
+    private float verticalLookRotation;
 
     void Awake()
     {
         controller = GetComponent<CharacterController>();
-        playerInput = GetComponent<PlayerInput>();
-        moveAction = playerInput.actions["Move"];
-        sprintAction = playerInput.actions["Sprint"];
+        input = GetComponent<PlayerInput>();
+
+        moveAction = input.actions["Move"];
+        sprintAction = input.actions["Sprint"];
+        lookAction = input.actions["Look"];
+        aimAction = input.actions["Aim"];
+        fireAction = input.actions["Attack"];
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -32,32 +40,49 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // Movement
-        Vector2 input = moveAction.ReadValue<Vector2>();
-        Vector3 move = new Vector3(input.x, 0, input.y);
-        move = transform.TransformDirection(move);
-        float currentSpeed = sprintAction.IsPressed() ? sprintSpeed : moveSpeed;
+        HandleMovement();
+        HandleLook();
+        HandleGunInput();
+    }
 
+    void HandleMovement()
+    {
+        Vector2 moveInput = moveAction.ReadValue<Vector2>();
+        Vector3 move = transform.TransformDirection(new Vector3(moveInput.x, 0f, moveInput.y));
+        float speed = sprintAction.IsPressed() ? sprintSpeed : moveSpeed;
 
-        // Gravity
-        if (controller.isGrounded && verticalVelocity.y < 0)
-        {
-            verticalVelocity.y = -2f; // small value to keep grounded
-        }
+        if (controller.isGrounded && verticalVelocity.y < 0f)
+            verticalVelocity.y = -2f;
 
         verticalVelocity.y += gravity * Time.deltaTime;
 
-        // Combine horizontal + vertical movement
-        Vector3 totalMove = move * currentSpeed + verticalVelocity;
-        controller.Move(totalMove * Time.deltaTime);
+        Vector3 totalMovement = move * speed + verticalVelocity;
+        controller.Move(totalMovement * Time.deltaTime);
+    }
 
-        // Mouse look
-        Vector2 mouseDelta = Mouse.current.delta.ReadValue();
-
+    void HandleLook()
+    {
+        Vector2 mouseDelta = lookAction.ReadValue<Vector2>();
         transform.Rotate(Vector3.up * (mouseDelta.x * mouseSensitivity * Time.deltaTime));
 
-        verticalRotation -= mouseDelta.y * mouseSensitivity * Time.deltaTime;
-        verticalRotation = Mathf.Clamp(verticalRotation, -80f, 80f);
-        cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+        verticalLookRotation -= mouseDelta.y * mouseSensitivity * Time.deltaTime;
+        verticalLookRotation = Mathf.Clamp(verticalLookRotation, -80f, 80f);
+        cameraTransform.localRotation = Quaternion.Euler(verticalLookRotation, 0f, 0f);
+
+        if (equippedGun != null)
+            equippedGun.UpdateLookInput(mouseDelta);
+    }
+
+    void HandleGunInput()
+    {
+        if (equippedGun == null) return;
+
+        bool isSprinting = sprintAction.IsPressed();
+
+        equippedGun.SetAiming(!isSprinting && aimAction.IsPressed());
+        equippedGun.SetSprinting(isSprinting);
+
+        if (!isSprinting && fireAction.IsPressed())
+            equippedGun.TryShoot();
     }
 }
